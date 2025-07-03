@@ -1,0 +1,1111 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Super Market - Punto de Venta</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Google Fonts & Icons -->
+    <link href="https://fonts.googleapis.com/css?family=Montserrat:400,700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link rel="stylesheet" href="CSS/estilos.css">
+</head>
+<body>
+<div id="pantallaCarga" style="display:none;position:fixed;z-index:9999;top:0;left:0;width:100vw;height:100vh;background:rgba(255,255,255,0.85);align-items:center;justify-content:center;flex-direction:column;">
+    <div style="border:6px solid #e3e3e3;border-top:6px solid #1976d2;border-radius:50%;width:60px;height:60px;animation:girar 1s linear infinite;"></div>
+    <div style="margin-top:1.5em;font-size:1.2em;color:#1976d2;font-weight:600;">Cargando...</div>
+</div>
+<style>
+@keyframes girar {
+    0% { transform: rotate(0deg);}
+    100% { transform: rotate(360deg);}
+}
+</style>
+<header style="display:flex;align-items:center;gap:1em;justify-content:center;">
+    <img id="empresaLogo" src="logo.png" alt="Logo" class="logo">
+    <h1 id="empresaNombre">Super Market</h1>
+</header>
+    <nav id="mainNav" class="hidden">
+        <button onclick="showSection('ventas')" id="ventasBtn"><i class="fa-solid fa-cash-register"></i> Ventas</button>
+        <button onclick="showSection('productos')" id="adminProductosBtn" class="hidden"><i class="fa-solid fa-boxes-stacked"></i> Productos</button>
+        <button onclick="showSection('cierres')"><i class="fa-solid fa-calendar-check"></i> Cierres</button>
+        <button onclick="showSection('balance')" id="adminBalanceBtn" class="hidden"><i class="fa-solid fa-chart-line"></i> Balance General</button>
+        <button onclick="showSection('config')" id="adminConfigBtn" class="hidden"><i class="fa-solid fa-gear"></i> Configuración</button>
+        <button onclick="showSection('pedidos')" id="adminPedidosBtn" class="hidden">
+            <i class="fa-solid fa-truck"></i> Pedidos
+        </button>
+        <button onclick="logout()"><i class="fa-solid fa-sign-out-alt"></i> Cerrar Sesión</button>
+    </nav>
+    <div class="container">
+        <!-- Login -->
+        <section id="loginSection">
+            <h2><i class="fa-solid fa-user-lock"></i> Iniciar Sesión</h2>
+            <!-- Ejemplo para el login -->
+<form onsubmit="login(event)" aria-label="Formulario de inicio de sesión">
+    <label for="loginUser"><i class="fa-solid fa-user"></i> Usuario:</label>
+    <input type="text" id="loginUser" required autocomplete="username">
+    <label for="loginPass"><i class="fa-solid fa-key"></i> Contraseña:</label>
+    <input type="password" id="loginPass" required autocomplete="current-password">
+    <button type="submit" aria-label="Entrar al sistema"><i class="fa-solid fa-arrow-right-to-bracket"></i> Entrar</button>
+</form>
+            <div id="loginError" style="color:#d32f2f;font-weight:600;"></div>
+        </section>
+
+        <!-- Ventas -->
+        <section id="ventasSection" class="hidden">
+            <h2><i class="fa-solid fa-cash-register"></i> Ventas</h2>
+            <input type="text" id="buscarCodigo" placeholder="Escanea o escribe código" style="width:180px;margin-bottom:1em;">
+            <form onsubmit="addVentaItem(event)">
+                <select id="ventaProducto" required></select>
+                <input type="number" id="ventaCantidad" min="1" value="1" required>
+                <input type="number" id="ventaImpuesto" placeholder="Impuesto (%)" min="0" max="100" step="0.01" style="width:130px;margin-right:1em;">
+                <button type="submit"><i class="fa-solid fa-plus"></i> Agregar</button>
+            </form>
+            <div style="margin-bottom:1em;">
+                <label>
+                    <input type="radio" name="tipoFactura" value="consumidor" checked onchange="toggleDatosCliente()"> Consumidor Final
+                </label>
+                <label style="margin-left:1em;">
+                    <input type="radio" name="tipoFactura" value="rtn" onchange="toggleDatosCliente()"> Con RTN
+                </label>
+                <div id="datosCliente" style="display:none;margin-top:0.7em;">
+                    <input type="text" id="clienteNombre" placeholder="Nombre del Cliente" style="margin-right:1em;">
+                    <input type="text" id="clienteRTN" placeholder="RTN">
+                </div>
+            </div>
+            <div class="right" style="font-size:1.3em;">
+                <strong>Total: L. <span id="ventaTotal">0.00</span></strong>
+            </div>
+            <button onclick="generarFactura()" style="margin-top:1em;"><i class="fa-solid fa-file-invoice"></i> Generar Factura</button>
+            <button onclick="generarPrefactura()" style="margin-top:1em;background:#1976d2;color:#fff;">
+                <i class="fa-solid fa-file"></i> Generar Prefactura
+            </button>
+            <div id="facturaSection" class="hidden"></div>
+
+            <!-- Tabla de venta -->
+<table id="ventaTabla">
+    <thead>
+        <tr>
+            <th>Código</th>
+            <th>Producto</th>
+            <th>Imagen</th>
+            <th>Cantidad</th>
+            <th>Precio</th>
+            <th>Subtotal</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody></tbody>
+</table>
+        </section>
+
+        <!-- Productos -->
+        <section id="productosSection" class="hidden">
+            <h2><i class="fa-solid fa-boxes-stacked"></i> Productos</h2>
+            <form onsubmit="agregarProducto(event)">
+                <input type="text" id="prodNombre" placeholder="Nombre" required>
+                <input type="number" id="prodPrecio" placeholder="Precio" min="0" step="0.01" required>
+                <input type="number" id="prodCantidad" placeholder="Cantidad" min="1" step="1" required>
+                <input type="file" id="prodImagen" accept="image/*" required>
+                <button type="submit"><i class="fa-solid fa-plus"></i> Agregar Producto</button>
+            </form>
+            <button id="btnExportarCSV" style="margin-bottom:1em;background:#1976d2;color:#fff;margin-left:1em;" onclick="exportarProductosCSV()">
+                <i class="fa-solid fa-file-csv"></i> Exportar Productos CSV
+            </button>
+            <input type="text" id="filtroProducto" placeholder="Filtrar por nombre..." style="margin-bottom:1em;width:220px;" oninput="filtrarProductos()">
+            <div id="resumenProductos" style="margin-bottom:1em;font-weight:600;"></div>
+            <table id="productosTabla">
+                <thead>
+                    <tr>
+                        <th>Código</th>
+                        <th>Producto</th>
+                        <th>Imagen</th>
+                        <th>Cantidad</th>
+                        <th>Precio</th>
+                        <th>Subtotal</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </section>
+
+        <!-- Cierres -->
+        <section id="cierresSection" class="hidden">
+            <h2><i class="fa-solid fa-calendar-check"></i> Cierres Diarios</h2>
+            <button onclick="realizarCierre()" style="margin-bottom:1em;"><i class="fa-solid fa-lock"></i> Realizar Cierre</button>
+            <table id="cierresTabla">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Total Ventas</th>
+                        <th>Descargar</th>
+                        <th>Turno</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+            <div style="margin-top:1em;">
+    <button onclick="realizarCierreTurno()" style="background:#1976d2;color:#fff;padding:0.7em 1.5em;border-radius:8px;">
+        <i class="fa-solid fa-clock-rotate-left"></i> Cierre de Turno
+    </button>
+</div>
+        </section>
+
+        <!-- Balance General (solo admin) -->
+        <section id="balanceSection" class="hidden">
+            <h2><i class="fa-solid fa-chart-line"></i> Balance General</h2>
+            <div style="margin-bottom:1em;">
+                <label>Seleccionar Año:
+                    <select id="balanceAnio"></select>
+                </label>
+                <label style="margin-left:1em;">Seleccionar Mes:
+                    <select id="balanceMes">
+                        <option value="0">Todos</option>
+                        <option value="1">Enero</option>
+                        <option value="2">Febrero</option>
+                        <option value="3">Marzo</option>
+                        <option value="4">Abril</option>
+                        <option value="5">Mayo</option>
+                        <option value="6">Junio</option>
+                        <option value="7">Julio</option>
+                        <option value="8">Agosto</option>
+                        <option value="9">Septiembre</option>
+                        <option value="10">Octubre</option>
+                        <option value="11">Noviembre</option>
+                        <option value="12">Diciembre</option>
+                    </select>
+                </label>
+                <button onclick="renderBalance()" style="margin-left:1em;"><i class="fa-solid fa-search"></i> Consultar</button>
+            </div>
+            <div id="balanceResumen"></div>
+            <table id="balanceTabla">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Tipo</th>
+                        <th>Monto</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </section>
+
+        <!-- Configuración (solo admin) -->
+        <section id="configSection" class="hidden">
+            <h2><i class="fa-solid fa-gear"></i> Configuración de Empresa</h2>
+            <form onsubmit="guardarConfig(event)">
+                <label>Nombre Empresa:<br>
+                    <input type="text" id="configNombre" required>
+                </label><br>
+                <label>Logo:<br>
+                    <input type="file" id="configLogo" accept="image/*">
+                </label><br>
+                <img id="configLogoPreview" class="logo-preview" src="logo.png" alt="Logo"><br>
+                <button type="submit"><i class="fa-solid fa-save"></i> Guardar</button>
+            </form>
+            <h3><i class="fa-solid fa-users"></i> Usuarios</h3>
+            <form onsubmit="agregarUsuario(event)">
+                <input type="text" id="nuevoUsuario" placeholder="Usuario" required>
+                <input type="password" id="nuevoPass" placeholder="Contraseña" required>
+                <select id="nuevoRol">
+                    <option value="admin">Administrador</option>
+                    <option value="gerente">Gerente</option>
+                    <option value="cajero">Cajero</option>
+                </select>
+                <button type="submit"><i class="fa-solid fa-user-plus"></i> Agregar Usuario</button>
+            </form>
+            <table id="usuariosTabla">
+                <thead>
+                    <tr>
+                        <th>Usuario</th>
+                        <th>Rol</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+            <button type="button" onclick="resetearProductos()" style="background:#d32f2f;color:#fff;margin-top:1.5em;">
+                <i class="fa-solid fa-trash"></i> Resetear Productos
+            </button>
+            <button type="button" onclick="resetearFacturas()" style="background:#1976d2;color:#fff;margin-top:1.5em;margin-left:1em;">
+                <i class="fa-solid fa-file-invoice"></i> Resetear Correlativo de Facturas
+            </button>
+        </section>
+
+        <!-- Pedidos -->
+        <section id="pedidosSection" class="hidden">
+            <h2><i class="fa-solid fa-truck"></i> Ingreso de Nuevo Pedido</h2>
+            <form onsubmit="agregarPedido(event)">
+                <input type="text" id="pedidoProveedor" placeholder="Código de Proveedor" required>
+                <input type="text" id="pedidoProducto" placeholder="Producto" required>
+                <input type="number" id="pedidoCantidad" placeholder="Cantidad" min="1" required>
+                <input type="number" id="pedidoPrecio" placeholder="Precio Unitario" min="0" step="0.01" required>
+                <button type="submit"><i class="fa-solid fa-plus"></i> Agregar Pedido</button>
+            </form>
+            <table id="pedidosTabla">
+                <thead>
+                    <tr>
+                        <th>Proveedor</th>
+                        <th>Producto</th>
+                        <th>Cantidad</th>
+                        <th>Precio Unitario</th>
+                        <th>Subtotal</th>
+                        <th>Fecha</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </section>
+
+        <!-- Muestra el total acumulado de ventas -->
+<div id="totalVentasHistorico" style="margin:1em 0;font-weight:700;color:#1976d2;font-size:1.1em;"></div>
+    </div>
+    <footer id="mainFooter"></footer>
+    <script type="module">
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } from "firebase/app";
+        // TODO: Add SDKs for Firebase products that you want to use
+        // https://firebase.google.com/docs/web/setup#available-libraries
+
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+          apiKey: "AIzaSyA0lEJ3cBT3ff4neWYx7yFS4vMWDLA4uys",
+          authDomain: "pos-punto-de-venta-a2b2d.firebaseapp.com",
+          projectId: "pos-punto-de-venta-a2b2d",
+          storageBucket: "pos-punto-de-venta-a2b2d.firebasestorage.app",
+          messagingSenderId: "883128500800",
+          appId: "1:883128500800:web:2fbf13044b7f93be3dd5a5"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        // --- Datos simulados en localStorage ---
+        const LS = {
+            get: (k, d=[]) => JSON.parse(localStorage.getItem(k) || JSON.stringify(d)),
+            set: (k, v) => localStorage.setItem(k, JSON.stringify(v))
+        };
+
+        if (!localStorage.getItem('ventas')) LS.set('ventas', []);
+        if (!localStorage.getItem('usuarios')) {
+            LS.set('usuarios', [
+                {usuario: 'admin', pass: 'admin', rol: 'admin'},
+                {usuario: 'gerente', pass: 'gerente', rol: 'gerente'},
+                {usuario: 'cajero', pass: 'cajero', rol: 'cajero'}
+            ]);
+        }
+        if (!localStorage.getItem('config')) {
+            LS.set('config', {
+                nombre: 'Super Market',
+                logo: ''
+            });
+        }
+        if (!localStorage.getItem('productos')) LS.set('productos', []);
+        if (!localStorage.getItem('cierres')) LS.set('cierres', []);
+        if (!localStorage.getItem('pedidos')) LS.set('pedidos', []);
+
+        // --- Mostrar botones solo para admin y gerente ---
+        function mostrarBotonesAdmin() {
+            // Oculta el botón de ventas si es admin
+            if (usuarioActual && usuarioActual.rol === 'admin') {
+                document.getElementById('adminConfigBtn').classList.remove('hidden');
+                document.getElementById('adminBalanceBtn').classList.remove('hidden');
+                document.getElementById('adminProductosBtn').classList.remove('hidden');
+                document.getElementById('adminPedidosBtn').classList.remove('hidden');
+                document.getElementById('ventasBtn').classList.add('hidden');
+            } else if (usuarioActual && usuarioActual.rol === 'gerente') {
+                document.getElementById('adminConfigBtn').classList.add('hidden');
+                document.getElementById('adminBalanceBtn').classList.add('hidden');
+                document.getElementById('adminProductosBtn').classList.remove('hidden');
+                document.getElementById('adminPedidosBtn').classList.remove('hidden');
+                document.getElementById('ventasBtn').classList.remove('hidden'); // ← Paréntesis corregido aquí
+            } else {
+                document.getElementById('adminConfigBtn').classList.add('hidden');
+                document.getElementById('adminBalanceBtn').classList.add('hidden');
+                document.getElementById('adminProductosBtn').classList.add('hidden');
+                document.getElementById('adminPedidosBtn').classList.add('hidden');
+                document.getElementById('ventasBtn').classList.remove('hidden');
+            }
+        }
+
+        // --- Navegación ---
+        function showSection(id) {
+            // Bloquear acceso a ventas para admin
+            if (
+                id === 'ventas' &&
+                usuarioActual &&
+                usuarioActual.rol === 'admin'
+            ) {
+                alert('Solo el cajero o gerente puede acceder a la sección de ventas.');
+                return;
+            }
+            // Solo admin puede entrar a configuración
+            if (id === 'config' && (!usuarioActual || usuarioActual.rol !== 'admin')) {
+                alert('Solo el administrador puede acceder a Configuración.');
+                return;
+            }
+            // Solo admin y gerente pueden entrar a productos y balance
+            if ((id === 'productos' || id === 'balance') && (!usuarioActual || (usuarioActual.rol !== 'admin' && usuarioActual.rol !== 'gerente'))) {
+                alert('Solo el administrador o gerente pueden acceder a esta sección.');
+                return;
+            }
+            ['ventas','productos','cierres','config','balance','pedidos'].forEach(s => {
+                document.getElementById(s+'Section').classList.add('hidden');
+            });
+            document.getElementById(id+'Section').classList.remove('hidden');
+            if (id === 'ventas') cargarProductosVenta();
+            if (id === 'productos') cargarProductos();
+            if (id === 'cierres') cargarCierres();
+            if (id === 'config') cargarConfig();
+            if (id === 'balance') {
+                cargarAniosBalance();
+                setTimeout(renderBalance, 100);
+            }
+            if (id === 'pedidos') cargarPedidos();
+        }
+
+        // --- Productos ---
+        function agregarProducto(e) {
+            e.preventDefault();
+            const productos = LS.get('productos');
+            const nombre = document.getElementById('prodNombre').value;
+            const precio = parseFloat(document.getElementById('prodPrecio').value);
+            const cantidad = parseInt(document.getElementById('prodCantidad').value);
+            const imgInput = document.getElementById('prodImagen');
+            const file = imgInput.files[0];
+            // Buscar si ya existe un producto con ese nombre
+            const existente = productos.find(p => p.nombre.toLowerCase() === nombre.toLowerCase());
+            if (existente) {
+                existente.cantidad = (existente.cantidad || 0) + cantidad;
+                LS.set('productos', productos);
+                cargarProductos();
+                cargarProductosVenta();
+                e.target.reset();
+                alert('Cantidad agregada al producto existente.');
+                return;
+            }
+            const codigo = (productos.length + 1).toString().padStart(5, '0');
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(ev) {
+                productos.push({codigo, nombre, precio, cantidad, imagen: ev.target.result});
+                LS.set('productos', productos);
+                cargarProductos();
+                cargarProductosVenta();
+                e.target.reset();
+            };
+            reader.readAsDataURL(file);
+        }
+        function cargarProductos() {
+            const productos = LS.get('productos');
+            const tbody = document.getElementById('productosTabla').querySelector('tbody');
+            tbody.innerHTML = '';
+            productos.forEach((p,i) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td>${p.codigo || ''}</td>
+                    <td>${p.nombre}</td>
+                    <td><img src="${p.imagen}" class="product-img"></td>
+                    <td>${p.cantidad || 0}</td>
+                    <td>L. ${p.precio.toFixed(2)}</td>
+                    <td><button onclick="eliminarProducto(${i})" title="Eliminar"><i class="fa-solid fa-trash"></i></button></td>`;
+                tbody.appendChild(tr);
+            });
+        }
+        function eliminarProducto(idx) {
+            if (!confirm('¿Eliminar producto?')) return;
+            const productos = LS.get('productos');
+            productos.splice(idx,1);
+            LS.set('productos', productos);
+            cargarProductos();
+            cargarProductosVenta();
+        }
+        function cargarProductosVenta() {
+            const productos = LS.get('productos');
+            const sel = document.getElementById('ventaProducto');
+            sel.innerHTML = '';
+            productos.forEach((p,i) => {
+                const opt = document.createElement('option');
+                opt.value = i;
+                opt.textContent = `${p.nombre} (L. ${p.precio.toFixed(2)})`;
+                sel.appendChild(opt);
+            });
+        }
+
+        // --- Ventas ---
+        let ventaActual = [];
+        function addVentaItem(e) {
+            e.preventDefault();
+            const idx = parseInt(document.getElementById('ventaProducto').value);
+            const cantidad = parseInt(document.getElementById('ventaCantidad').value);
+            const productos = LS.get('productos');
+            const prod = productos[idx];
+            if (!prod) return;
+            if ((prod.cantidad || 0) < cantidad) {
+                alert('No hay suficiente stock');
+                return;
+            }
+            prod.cantidad -= cantidad;
+            LS.set('productos', productos);
+            ventaActual.push({codigo: prod.codigo, nombre: prod.nombre, precio: prod.precio, imagen: prod.imagen, cantidad});
+            cargarProductos();
+            cargarProductosVenta();
+            renderVenta();
+        }
+        function renderVenta() {
+            const tbody = document.getElementById('ventaTabla').querySelector('tbody');
+            tbody.innerHTML = '';
+            let total = 0;
+            ventaActual.forEach((item,i) => {
+                const subtotal = item.precio * item.cantidad;
+                total += subtotal;
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td>${item.codigo || ''}</td>
+                    <td>${item.nombre}</td>
+                    <td><img src="${item.imagen}" class="product-img"></td>
+                    <td>${item.cantidad}</td>
+                    <td>L. ${item.precio.toFixed(2)}</td>
+                    <td>L. ${subtotal.toFixed(2)}</td>
+                    <td><button onclick="eliminarVentaItem(${i})" title="Quitar"><i class="fa-solid fa-minus-circle"></i></button></td>`;
+                tbody.appendChild(tr);
+            });
+            document.getElementById('ventaTotal').innerText = total.toFixed(2);
+        }
+        function eliminarVentaItem(idx) {
+            ventaActual.splice(idx,1);
+            renderVenta();
+        }
+        if (!localStorage.getItem('facturaCorrelativo')) localStorage.setItem('facturaCorrelativo', '1');
+
+        // --- Generar Factura ---
+        function generarFactura() {
+            if (ventaActual.length === 0) return alert('Agregue productos a la venta');
+            const config = LS.get('config');
+            let subtotal = ventaActual.reduce((s,x) => s + x.precio*x.cantidad, 0);
+            const impuestoInput = document.getElementById('ventaImpuesto');
+            let impuestoPorc = parseFloat(impuestoInput && impuestoInput.value ? impuestoInput.value : 0);
+            if (isNaN(impuestoPorc) || impuestoPorc < 0) impuestoPorc = 0;
+            let impuestoValor = subtotal * (impuestoPorc / 100);
+            let total = subtotal + impuestoValor;
+
+            // Obtener y actualizar el correlativo
+            let correlativo = parseInt(localStorage.getItem('facturaCorrelativo') || '1');
+            localStorage.setItem('facturaCorrelativo', (correlativo + 1).toString());
+
+            const tipoFactura = document.querySelector('input[name="tipoFactura"]:checked').value;
+            let clienteNombre = '', clienteRTN = '';
+            if (tipoFactura === 'rtn') {
+                clienteNombre = document.getElementById('clienteNombre').value.trim();
+                clienteRTN = document.getElementById('clienteRTN').value.trim();
+            }
+
+            // --- Guarda la venta en localStorage para el cierre diario ---
+            let ventas = LS.get('ventas', []);
+            ventas.push({
+                fecha: new Date().toLocaleString(),
+                items: [...ventaActual],
+                subtotal,
+                impuesto: impuestoValor,
+                total
+            });
+            LS.set('ventas', ventas);
+
+            // ACTUALIZA EL SALDO INMEDIATAMENTE
+            mostrarSaldoVentas();
+
+            let html = `
+<div id="facturaImprimir" style="max-width:480px;margin:0 auto;background:#fff;border-radius:16px;box-shadow:0 4px 24px rgba(44,62,80,0.10);padding:2em 2em 1.5em 2em;position:relative;">
+    <div style="display:flex;align-items:center;gap:1em;margin-bottom:1.2em;">
+        <img src="${config.logo ? config.logo : 'logo.png'}" alt="Logo" style="height:60px;width:60px;object-fit:cover;border-radius:12px;box-shadow:0 2px 8px rgba(44,62,80,0.10);background:#fff;">
+        <div>
+            <h2 style="margin:0;color:#256f25;font-size:1.6em;letter-spacing:1px;">${config.nombre}</h2>
+            <div style="font-size:0.98em;color:#444;line-height:1.3;">
+                RTN: 13232001001501<br>
+                Dirección: La Lima, Talgua, Lempira<br>
+                Propietario: Grevil Castañeda<br>
+                Teléfono: +504 93383305
+            </div>
+            ${tipoFactura === 'rtn' ? `
+                <div style="font-size:0.98em;color:#444;line-height:1.3;margin-bottom:0.5em;">
+                    <strong>Cliente:</strong> ${clienteNombre || '-'}<br>
+                    <strong>RTN:</strong> ${clienteRTN || '-'}
+                </div>
+            ` : `
+                <div style="font-size:0.98em;color:#444;line-height:1.3;margin-bottom:0.5em;">
+                    <strong>Consumidor Final</strong>
+                </div>
+            `}
+            <span style="color:#888;font-size:1em;">Factura de venta</span>
+        </div>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1em;">
+        <span style="color:#256f25;font-weight:600;font-size:1.1em;">Factura</span>
+        <span style="background:#e8f5e9;color:#256f25;padding:0.3em 1em;border-radius:8px;font-weight:600;font-size:1.1em;">
+            #${correlativo.toString().padStart(6, '0')}
+        </span>
+    </div>
+    <table style="width:100%;border-collapse:collapse;margin-bottom:1.2em;">
+        <thead>
+            <tr style="background:#f3f7f4;">
+                <th style="padding:0.7em 0.4em;color:#256f25;font-size:1em;border-bottom:2px solid #e0e0e0;">Código</th>
+                <th style="padding:0.7em 0.4em;color:#256f25;font-size:1em;border-bottom:2px solid #e0e0e0;">Producto</th>
+                <th style="padding:0.7em 0.4em;color:#256f25;font-size:1em;border-bottom:2px solid #e0e0e0;">Cant</th>
+                <th style="padding:0.7em 0.4em;color:#256f25;font-size:1em;border-bottom:2px solid #e0e0e0;">Precio</th>
+                <th style="padding:0.7em 0.4em;color:#256f25;font-size:1em;border-bottom:2px solid #e0e0e0;">Subtotal</th>
+            </tr>
+        </thead>
+        <tbody>
+            ${ventaActual.map(x=>`
+            <tr>
+                <td style="padding:0.6em 0.4em;text-align:center;color:#444;">${x.codigo || ''}</td>
+                <td style="padding:0.6em 0.4em;color:#222;">${x.nombre}</td>
+                <td style="padding:0.6em 0.4em;text-align:center;">${x.cantidad}</td>
+                <td style="padding:0.6em 0.4em;text-align:right;">L. ${x.precio.toFixed(2)}</td>
+                <td style="padding:0.6em 0.4em;text-align:right;font-weight:600;">L. ${(x.precio*x.cantidad).toFixed(2)}</td>
+            </tr>
+            `).join('')}
+        </tbody>
+    </table>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:0.2em;margin-bottom:1.2em;">
+        <div style="color:#555;">Subtotal: <span style="font-weight:600;">L. ${subtotal.toFixed(2)}</span></div>
+        <div style="color:#555;">Impuesto (${impuestoPorc.toFixed(2)}%): <span style="font-weight:600;">L. ${impuestoValor.toFixed(2)}</span></div>
+        <div style="font-size:1.25em;color:#256f25;font-weight:700;margin-top:0.3em;">
+            Total: L. ${total.toFixed(2)}
+        </div>
+    </div>
+    <div style="text-align:right;font-size:0.98em;color:#888;margin-bottom:0.5em;">
+        <i class="fa-regular fa-clock"></i> ${new Date().toLocaleString()}
+    </div>
+</div>
+<div style="text-align:center;margin-top:1.2em;">
+    <button onclick="descargarFactura()" style="background:#256f25;color:#fff;border:none;padding:0.7em 1.5em;border-radius:8px;font-size:1em;margin-right:0.7em;box-shadow:0 2px 8px rgba(44,62,80,0.07);">
+        <i class='fa-solid fa-download'></i> Descargar PDF
+    </button>
+    <button onclick="imprimirFactura()" style="background:#ffb300;color:#222;border:none;padding:0.7em 1.5em;border-radius:8px;font-size:1em;margin-right:0.7em;box-shadow:0 2px 8px rgba(44,62,80,0.07);">
+        <i class='fa-solid fa-print'></i> Imprimir
+    </button>
+    <button onclick="cerrarFactura()" style="background:#d32f2f;color:#fff;border:none;padding:0.7em 1.5em;border-radius:8px;font-size:1em;box-shadow:0 2px 8px rgba(44,62,80,0.07);">
+        <i class='fa-solid fa-times'></i> Cerrar
+    </button>
+</div>
+`;
+            document.getElementById('facturaSection').innerHTML = html;
+            document.getElementById('facturaSection').classList.remove('hidden');
+        }
+        function cerrarFactura() {
+            document.getElementById('facturaSection').classList.add('hidden');
+            ventaActual = [];
+            renderVenta();
+        }
+        function descargarFactura() {
+            const facturaDiv = document.getElementById('facturaSection').firstElementChild;
+            const blob = new Blob([facturaDiv.outerHTML], {type:'text/html'});
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'factura.html';
+            a.click();
+        }
+        function imprimirFactura() {
+            const facturaImprimir = document.getElementById('facturaImprimir');
+            // Siempre usa el logo por defecto
+            const facturaHTML = facturaImprimir.innerHTML.replace(
+                /(<div style="display:flex;align-items:center;">)([\s\S]*?)(<h2 style="margin:0;color:#256f25;">)/,
+                `$1<img src="Imagen/logo.png" style="height:50px;margin-right:1em;border-radius:8px;">$3`
+            );
+            const ventana = window.open('', '_blank');
+            ventana.document.write(`
+        <html>
+            <head>
+                <title>Factura</title>
+                <style>
+                    body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
+                    .factura { border: 1px solid #ccc; padding: 1em; border-radius: 10px; background: #fff; }
+                    .factura h2 { color: #256f25; margin: 0 0 0.5em 0; }
+                    .factura h3 { color: #2d8f2d; margin: 0 0 1em 0; }
+                    .factura table { width: 100%; border-collapse: collapse; margin-bottom: 1em; }
+                    .factura th, .factura td { border: 1px solid #ddd; padding: 0.7em; text-align: left; }
+                    .factura th { background: #f3f7f4; color: #256f25; }
+                    .factura .total { text-align: right; font-weight: bold; }
+                    img { max-height: 50px; border-radius: 8px; margin-right: 1em; }
+                </style>
+            </head>
+            <body>
+                <div class="factura">
+                    ${facturaHTML}
+                </div>
+            </body>
+        </html>
+    `);
+            ventana.document.close();
+            ventana.focus();
+            ventana.print();
+            ventana.close();
+        }
+
+        // --- Cierres diarios ---
+        // Cambia la función realizarCierre para sumar todas las ventas del día actual
+        function realizarCierre() {
+            // Obtén todas las ventas guardadas (deberías guardar cada venta con fecha en localStorage)
+            // Si no tienes un registro de ventas, usa el total de la venta actual (menos preciso)
+            let ventas = LS.get('ventas', []);
+            const hoy = new Date().toLocaleDateString();
+
+            // Filtra ventas del día actual
+            const ventasHoy = ventas.filter(v => {
+                // v.fecha debe ser guardada como string con fecha y hora
+                return v.fecha && v.fecha.startsWith(hoy);
+            });
+
+            // Suma el total de las ventas del día
+            const total = ventasHoy.reduce((sum, v) => sum + (v.total || 0), 0);
+
+            // Si no hay registro de ventas, usa el total mostrado (compatibilidad)
+            const totalFinal = ventasHoy.length > 0 ? total : (parseFloat(document.getElementById('ventaTotal').innerText) || 0);
+
+            const cierres = LS.get('cierres');
+            cierres.push({fecha: new Date().toLocaleString(), total: totalFinal});
+            LS.set('cierres', cierres);
+            cargarCierres();
+            alert('Cierre realizado');
+        }
+        function cargarCierres() {
+            const cierres = LS.get('cierres');
+            const tbody = document.getElementById('cierresTabla').querySelector('tbody');
+            tbody.innerHTML = '';
+            cierres.forEach((c,i) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td>${c.fecha}</td>
+    <td>L. ${c.total.toFixed(2)}</td>
+    <td>${c.turno || ''}</td>
+    <td><button onclick="descargarCierre(${i})" title="Descargar"><i class="fa-solid fa-download"></i></button></td>`;
+                tbody.appendChild(tr);
+            });
+        }
+        function descargarCierre(idx) {
+            const cierres = LS.get('cierres');
+            const c = cierres[idx];
+            const data = `Fecha: ${c.fecha}\nTotal Ventas: L. ${c.total.toFixed(2)}`;
+            const blob = new Blob([data], {type:'text/plain'});
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `cierre_${idx+1}.txt`;
+            a.click();
+        }
+        if (!localStorage.getItem('cierres')) LS.set('cierres', []);
+
+        // --- Balance General (solo admin) ---
+        function renderBalance() {
+            const anio = parseInt(document.getElementById('balanceAnio').value);
+            const mes = parseInt(document.getElementById('balanceMes').value);
+            const ventas = LS.get('ventas', []);
+            let totalVentas = 0;
+            let totalProductos = 0;
+            let totalServicios = 0;
+            let totalOtros = 0;
+            let totalImpuesto = 0;
+            let total = 0;
+
+            // Filtrar ventas por año y mes
+            const ventasFiltradas = ventas.filter(v => {
+                const fecha = new Date(v.fecha);
+                return (isNaN(anio) || fecha.getFullYear() === anio) && (isNaN(mes) || (fecha.getMonth() + 1) === mes);
+            });
+
+            // Calcular totales
+            ventasFiltradas.forEach(v => {
+                totalVentas += v.total || 0;
+                v.items.forEach(item => {
+                    totalProductos += (item.tipo === 'producto' ? item.precio * item.cantidad : 0);
+                    totalServicios += (item.tipo === 'servicio' ? item.precio * item.cantidad : 0);
+                    totalOtros += (item.tipo === 'otro' ? item.precio * item.cantidad : 0);
+                });
+                totalImpuesto += v.impuesto || 0;
+            });
+
+            total = totalVentas + totalImpuesto;
+
+            // Renderizar resumen
+            document.getElementById('balanceResumen').innerHTML = `
+                <div style="font-size:1.2em;margin-bottom:0.5em;">
+                    <strong>Resumen ${isNaN(mes) ? anio : `${new Intl.DateTimeFormat('es-HN', { month: 'long' }).format(new Date(anio, mes - 1))} ${anio}`}</strong>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:0.3em;">
+                    <div>Total Ventas: <strong>L. ${totalVentas.toFixed(2)}</strong></div>
+                    <div>Productos: <strong>L. ${totalProductos.toFixed(2)}</strong></div>
+                    <div>Servicios: <strong>L. ${totalServicios.toFixed(2)}</strong></div>
+                    <div>Otros: <strong>L. ${totalOtros.toFixed(2)}</strong></div>
+                    <div>Impuesto: <strong>L. ${totalImpuesto.toFixed(2)}</strong></div>
+                    <div style="font-size:1.5em;color:#256f25;font-weight:700;">Total: L. ${total.toFixed(2)}</div>
+                </div>
+            `;
+
+            // Renderizar tabla
+            const tbody = document.getElementById('balanceTabla').querySelector('tbody');
+            tbody.innerHTML = '';
+            ventasFiltradas.forEach(v => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td>${v.fecha}</td>
+                    <td>${v.items.map(item => `${item.nombre} (${item.cantidad})`).join('<br>')}</td>
+                    <td>L. ${v.subtotal.toFixed(2)}</td>
+                    <td>L. ${v.impuesto.toFixed(2)}</td>
+                    <td>L. ${v.total.toFixed(2)}</td>`;
+                tbody.appendChild(tr);
+            });
+        }
+        function cargarAniosBalance() {
+            const anios = LS.get('ventas').map(v => new Date(v.fecha).getFullYear());
+            const select = document.getElementById('balanceAnio');
+            select.innerHTML = '<option value="">Seleccione año</option>';
+            [...new Set(anios)].sort().forEach(a => {
+                const opt = document.createElement('option');
+                opt.value = a;
+                opt.textContent = a;
+                select.appendChild(opt);
+            });
+        }
+        function cargarConfig() {
+            const config = LS.get('config');
+            document.getElementById('empresaNombre').innerText = config.nombre;
+            document.getElementById('configNombre').value = config.nombre;
+            document.getElementById('empresaLogo').src = config.logo ? config.logo : 'logo.png';
+    document.getElementById('configLogoPreview').src = config.logo ? config.logo : 'logo.png';
+        }
+        document.getElementById('configLogo').addEventListener('change', function() {
+            const file = this.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(ev) {
+                document.getElementById('configLogoPreview').src = ev.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+        function guardarConfig(e) {
+            e.preventDefault();
+            const nombre = document.getElementById('configNombre').value;
+            const logoInput = document.getElementById('configLogo');
+            const config = LS.get('config');
+            if (logoInput.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(ev) {
+                    LS.set('config', {nombre, logo: ev.target.result});
+                    cargarConfig();
+                    alert('Configuración guardada');
+                };
+                reader.readAsDataURL(logoInput.files[0]);
+            } else {
+                LS.set('config', {nombre, logo: config.logo});
+                cargarConfig();
+                alert('Configuración guardada');
+            }
+        }
+        function cargarUsuarios() {
+            if (!usuarioActual || usuarioActual.rol !== 'admin') return;
+            const usuarios = LS.get('usuarios');
+            const tbody = document.getElementById('usuariosTabla').querySelector('tbody');
+            tbody.innerHTML = '';
+            usuarios.forEach((u,i) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td>${u.usuario}</td>
+                    <td>${u.rol}</td>
+                    <td>${u.usuario !== 'admin' ? `<button onclick="eliminarUsuario(${i})" title="Eliminar"><i class="fa-solid fa-trash"></i></button>` : ''}</td>`;
+                tbody.appendChild(tr);
+            });
+        }
+        function agregarUsuario(e) {
+            e.preventDefault();
+            const usuario = document.getElementById('nuevoUsuario').value;
+            const pass = document.getElementById('nuevoPass').value;
+            const rol = document.getElementById('nuevoRol').value;
+            const usuarios = LS.get('usuarios');
+            if (usuarios.find(x=>x.usuario===usuario)) {
+                alert('Usuario ya existe');
+                return;
+            }
+            usuarios.push({usuario, pass, rol});
+            LS.set('usuarios', usuarios);
+            cargarUsuarios();
+            e.target.reset();
+        }
+        function eliminarUsuario(idx) {
+            if (!confirm('¿Eliminar usuario?')) return;
+            const usuarios = LS.get('usuarios');
+            usuarios.splice(idx,1);
+            LS.set('usuarios', usuarios);
+            cargarUsuarios();
+        }
+
+        // --- Función de login
+        let usuarioActual = null;
+
+        function login(e) {
+            e.preventDefault();
+            const u = document.getElementById('loginUser').value.trim();
+            const p = document.getElementById('loginPass').value.trim();
+            const usuarios = LS.get('usuarios');
+            const user = usuarios.find(x => x.usuario === u && x.pass === p);
+            if (user) {
+                usuarioActual = user;
+                document.getElementById('pantallaCarga').style.display = 'flex';
+                setTimeout(() => {
+                    document.getElementById('loginSection').classList.add('hidden');
+                    document.getElementById('mainNav').classList.remove('hidden');
+                    mostrarBotonesAdmin();
+                    showSection('ventas');
+                    cargarConfig();
+                    cargarProductos();
+                    cargarUsuarios();
+                    cargarCierres();
+                    cargarAniosBalance();
+                    document.getElementById('loginError').innerText = '';
+                    // Limpia campos de login
+                    document.getElementById('loginUser').value = '';
+                    document.getElementById('loginPass').value = '';
+                    document.getElementById('pantallaCarga').style.display = 'none';
+                }, 1200); // 1.2 segundos de carga
+            } else {
+                document.getElementById('loginError').innerText = 'Usuario o contraseña incorrectos';
+                usuarioActual = null;
+            }
+            document.getElementById('totalVentasHistorico').style.display = 'block';
+        }
+
+        // --- Inicialización ---
+        cargarConfig();
+        if (!localStorage.getItem('productos')) LS.set('productos', []);
+        if (!localStorage.getItem('cierres')) LS.set('cierres', []);
+        cargarAniosBalance();
+
+        // --- Mostrar botón de Balance solo para admin ---
+        function mostrarBotonesAdmin() {
+            if (usuarioActual && usuarioActual.rol === 'admin') {
+                document.getElementById('adminConfigBtn').classList.remove('hidden');
+                document.getElementById('adminBalanceBtn').classList.remove('hidden');
+                document.getElementById('adminProductosBtn').classList.remove('hidden');
+                document.getElementById('adminPedidosBtn').classList.remove('hidden');
+            } else if (usuarioActual && usuarioActual.rol === 'gerente') {
+                document.getElementById('adminConfigBtn').classList.add('hidden');
+                document.getElementById('adminBalanceBtn').classList.add('hidden');
+                document.getElementById('adminProductosBtn').classList.remove('hidden');
+                document.getElementById('adminPedidosBtn').classList.remove('hidden');
+            } else {
+                document.getElementById('adminConfigBtn').classList.add('hidden');
+                document.getElementById('adminBalanceBtn').classList.add('hidden');
+                document.getElementById('adminProductosBtn').classList.add('hidden');
+                document.getElementById('adminPedidosBtn').classList.add('hidden');
+            }
+        }
+    document.getElementById('mainFooter').innerHTML =
+        `&copy; ${new Date().getFullYear()} Grevil Castañeda &mdash; Sistema Punto de Venta v1.0`;
+    function logout() {
+        usuarioActual = null;
+        document.getElementById('mainNav').classList.add('hidden');
+        document.getElementById('loginSection').classList.remove('hidden');
+        // Oculta todas las secciones menos login
+        ['ventas','productos','cierres','config','balance'].forEach(s => {
+            document.getElementById(s+'Section').classList.add('hidden');
+        });
+        document.getElementById('loginUser').value = '';
+        document.getElementById('loginPass').value = '';
+        document.getElementById('loginError').innerText = '';
+        // OCULTA EL SALDO
+        document.getElementById('totalVentasHistorico').style.display = 'none';
+    }
+    function toggleDatosCliente() {
+        const tipo = document.querySelector('input[name="tipoFactura"]:checked').value;
+        document.getElementById('datosCliente').style.display = (tipo === 'rtn') ? 'block' : 'none';
+    }
+
+    function generarPrefactura() {
+        if (ventaActual.length === 0) return alert('Agregue productos a la venta');
+        const config = LS.get('config');
+        let subtotal = ventaActual.reduce((s,x) => s + x.precio*x.cantidad, 0);
+        const impuestoInput = document.getElementById('ventaImpuesto');
+        let impuestoPorc = parseFloat(impuestoInput && impuestoInput.value ? impuestoInput.value : 0);
+        if (isNaN(impuestoPorc) || impuestoPorc < 0) impuestoPorc = 0;
+        let impuestoValor = subtotal * (impuestoPorc / 100);
+        let total = subtotal + impuestoValor;
+
+        const tipoFactura = document.querySelector('input[name="tipoFactura"]:checked').value;
+        let clienteNombre = '', clienteRTN = '';
+        if (tipoFactura === 'rtn') {
+            clienteNombre = document.getElementById('clienteNombre').value.trim();
+            clienteRTN = document.getElementById('clienteRTN').value.trim();
+        }
+
+        let html = `
+<div id="prefacturaImprimir" style="max-width:480px;margin:0 auto;background:#fff;border-radius:16px;box-shadow:0 4px 24px rgba(44,62,80,0.10);padding:2em 2em 1.5em 2em;position:relative;">
+    <div style="display:flex;align-items:center;gap:1em;margin-bottom:1.2em;">
+        <img src="${config.logo ? config.logo : 'logo.png'}" alt="Logo" style="height:60px;width:60px;object-fit:cover;border-radius:12px;box-shadow:0 2px 8px rgba(44,62,80,0.10);background:#fff;">
+        <div>
+            <h2 style="margin:0;color:#256f25;font-size:1.6em;letter-spacing:1px;">${config.nombre}</h2>
+            <div style="font-size:0.98em;color:#444;line-height:1.3;">
+                RTN: 13232001001501<br>
+                Dirección: La Lima, Talgua, Lempira<br>
+                Propietario: Grevil Castañeda<br>
+                Teléfono: +504 93383305
+            </div>
+            ${tipoFactura === 'rtn' ? `
+                <div style="font-size:0.98em;color:#444;line-height:1.3;margin-bottom:0.5em;">
+                    <strong>Cliente:</strong> ${clienteNombre || '-'}<br>
+                    <strong>RTN:</strong> ${clienteRTN || '-'}
+                </div>
+            ` : `
+                <div style="font-size:0.98em;color:#444;line-height:1.3;margin-bottom:0.5em;">
+                    <strong>Consumidor Final</strong>
+                </div>
+            `}
+            <span style="color:#888;font-size:1em;">Prefactura</span>
+        </div>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1em;">
+        <span style="color:#256f25;font-weight:600;font-size:1.1em;">Prefactura</span>
+        <span style="background:#e8f5e9;color:#256f25;padding:0.3em 1em;border-radius:8px;font-weight:600;font-size:1.1em;">
+            (Sin número)
+        </span>
+    </div>
+    <table style="width:100%;border-collapse:collapse;margin-bottom:1.2em;">
+        <thead>
+            <tr style="background:#f3f7f4;">
+                <th style="padding:0.7em 0.4em;color:#256f25;font-size:1em;border-bottom:2px solid #e0e0e0;">Código</th>
+                <th style="padding:0.7em 0.4em;color:#256f25;font-size:1em;border-bottom:2px solid #e0e0e0;">Producto</th>
+                <th style="padding:0.7em 0.4em;color:#256f25;font-size:1em;border-bottom:2px solid #e0e0e0;">Cant</th>
+                <th style="padding:0.7em 0.4em;color:#256f25;font-size:1em;border-bottom:2px solid #e0e0e0;">Precio</th>
+                <th style="padding:0.7em 0.4em;color:#256f25;font-size:1em;border-bottom:2px solid #e0e0e0;">Subtotal</th>
+            </tr>
+        </thead>
+        <tbody>
+            ${ventaActual.map(x=>`
+            <tr>
+                <td style="padding:0.6em 0.4em;text-align:center;color:#444;">${x.codigo || ''}</td>
+                <td style="padding:0.6em 0.4em;color:#222;">${x.nombre}</td>
+                <td style="padding:0.6em 0.4em;text-align:center;">${x.cantidad}</td>
+                <td style="padding:0.6em 0.4em;text-align:right;">L. ${x.precio.toFixed(2)}</td>
+                <td style="padding:0.6em 0.4em;text-align:right;font-weight:600;">L. ${(x.precio*x.cantidad).toFixed(2)}</td>
+            </tr>
+            `).join('')}
+        </tbody>
+    </table>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:0.2em;margin-bottom:1.2em;">
+        <div style="color:#555;">Subtotal: <span style="font-weight:600;">L. ${subtotal.toFixed(2)}</span></div>
+        <div style="color:#555;">Impuesto (${impuestoPorc.toFixed(2)}%): <span style="font-weight:600;">L. ${impuestoValor.toFixed(2)}</span></div>
+        <div style="font-size:1.25em;color:#256f25;font-weight:700;margin-top:0.3em;">
+            Total: L. ${total.toFixed(2)}
+        </div>
+    </div>
+    <div style="text-align:right;font-size:0.98em;color:#888;margin-bottom:0.5em;">
+        <i class="fa-regular fa-clock"></i> ${new Date().toLocaleString()}
+    </div>
+</div>
+<div style="text-align:center;margin-top:1.2em;">
+    <button onclick="cerrarPrefactura()" style="background:#d32f2f;color:#fff;border:none;padding:0.7em 1.5em;border-radius:8px;font-size:1em;margin-right:0.7em;">
+        <i class='fa-solid fa-times'></i> Cerrar
+    </button>
+    <button onclick="generarFactura()" style="background:#256f25;color:#fff;border:none;padding:0.7em 1.5em;border-radius:8px;font-size:1em;">
+        <i class='fa-solid fa-file-invoice'></i> Generar Factura
+    </button>
+</div>
+`;
+        document.getElementById('facturaSection').innerHTML = html;
+        document.getElementById('facturaSection').classList.remove('hidden');
+    }
+
+    function cerrarPrefactura() {
+        document.getElementById('facturaSection').classList.add('hidden');
+    }
+
+    function resetearProductos() {
+        if (confirm('¿Seguro que desea eliminar TODOS los productos?')) {
+            LS.set('productos', []);
+            cargarProductos();
+            cargarProductosVenta();
+            alert('Productos reseteados.');
+        }
+    }
+
+    function resetearFacturas() {
+        if (confirm('¿Seguro que desea resetear el correlativo de facturas?')) {
+            localStorage.setItem('facturaCorrelativo', '1');
+            alert('Correlativo de facturas reseteado.');
+        }
+    }
+
+    // --- Pedidos ---
+if (!localStorage.getItem('pedidos')) LS.set('pedidos', []);
+
+function agregarPedido(e) {
+    e.preventDefault();
+    const proveedor = document.getElementById('pedidoProveedor').value.trim();
+    const producto = document.getElementById('pedidoProducto').value.trim();
+    const cantidad = parseInt(document.getElementById('pedidoCantidad').value);
+    const precio = parseFloat(document.getElementById('pedidoPrecio').value);
+    const fecha = new Date().toLocaleString();
+    const pedidos = LS.get('pedidos');
+    pedidos.push({proveedor, producto, cantidad, precio, subtotal: cantidad * precio, fecha});
+    LS.set('pedidos', pedidos);
+    cargarPedidos();
+    e.target.reset();
+}
+
+function cargarPedidos() {
+    const pedidos = LS.get('pedidos');
+    const tbody = document.getElementById('pedidosTabla').querySelector('tbody');
+    tbody.innerHTML = '';
+    pedidos.forEach((p, i) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${p.proveedor}</td>
+            <td>${p.producto}</td>
+            <td>${p.cantidad}</td>
+            <td>L. ${p.precio.toFixed(2)}</td>
+            <td>L. ${p.subtotal.toFixed(2)}</td>
+            <td>${p.fecha}</td>
+            <td><button onclick="eliminarPedido(${i})" title="Eliminar"><i class="fa-solid fa-trash"></i></button></td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function eliminarPedido(idx) {
+    if (!confirm('¿Eliminar pedido?')) return;
+    const pedidos = LS.get('pedidos');
+    pedidos.splice(idx, 1);
+    LS.set('pedidos', pedidos);
+    cargarPedidos();
+}
+
+// Llama cargarPedidos() al iniciar para mostrar los pedidos guardados
+cargarPedidos();
+
+function mostrarSaldoVentas() {
+    const ventas = LS.get('ventas', []);
+    const saldo = ventas.reduce((sum, v) => sum + (v.total || 0), 0);
+    document.getElementById('totalVentasHistorico').innerText = `Saldo acumulado de ventas: L. ${saldo.toFixed(2)}`;
+}
+
+// Llama esta función al cargar la página y después de registrar una venta o cierre
+mostrarSaldoVentas();
+document.getElementById('totalVentasHistorico').style.display = 'none';
+
+function exportarProductosCSV() {
+    const productos = LS.get('productos', []);
+    if (!productos.length) {
+        alert('No hay productos para exportar.');
+        return;
+    }
+    // Encabezados del CSV
+    const encabezados = ['Código', 'Nombre', 'Precio', 'Cantidad'];
+    // Construir filas
+    const filas = productos.map(p =>
+        [p.codigo, `"${p.nombre}"`, p.precio, p.cantidad].join(',')
+    );
+    // Unir todo
+    const csv = [encabezados.join(','), ...filas].join('\r\n');
+    // Descargar
+    const blob = new Blob([csv], {type: 'text/csv'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'productos.csv';
+    a.click();
+}
+    </script>
+</body>
+</html>
