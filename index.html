@@ -263,6 +263,23 @@
     </div>
     <footer id="mainFooter"></footer>
     <script>
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } from "firebase/app";
+        // TODO: Add SDKs for Firebase products that you want to use
+        // https://firebase.google.com/docs/web/setup#available-libraries
+
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+          apiKey: "AIzaSyA0lEJ3cBT3ff4neWYx7yFS4vMWDLA4uys",
+          authDomain: "pos-punto-de-venta-a2b2d.firebaseapp.com",
+          projectId: "pos-punto-de-venta-a2b2d",
+          storageBucket: "pos-punto-de-venta-a2b2d.firebasestorage.app",
+          messagingSenderId: "883128500800",
+          appId: "1:883128500800:web:2fbf13044b7f93be3dd5a5"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
         // --- Datos simulados en localStorage ---
         const LS = {
             get: (k, d=[]) => JSON.parse(localStorage.getItem(k) || JSON.stringify(d)),
