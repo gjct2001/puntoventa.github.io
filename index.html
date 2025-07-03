@@ -816,46 +816,6 @@
             const pass = document.getElementById('nuevoPass').value;
             const rol = document.getElementById('nuevoRol').value;
             const usuarios = LS.get('usuarios');
-            function login(e) {
-    e.preventDefault();
-    const u = document.getElementById('loginUser').value.trim();
-    const p = document.getElementById('loginPass').value.trim();
-    const errorDiv = document.getElementById('loginError');
-    if (!u || !p) {
-        errorDiv.innerText = 'Por favor ingrese usuario y contraseña.';
-        return;
-    }
-    let usuarios = [];
-    try {
-        usuarios = LS.get('usuarios');
-    } catch {
-        errorDiv.innerText = 'Error de almacenamiento local. Pruebe otro navegador.';
-        return;
-    }
-    const user = usuarios.find(x => x.usuario === u && x.pass === p);
-    if (user) {
-        usuarioActual = user;
-        document.getElementById('pantallaCarga').style.display = 'flex';
-        setTimeout(() => {
-            document.getElementById('loginSection').classList.add('hidden');
-            document.getElementById('mainNav').classList.remove('hidden');
-            mostrarBotonesAdmin();
-            showSection('ventas');
-            cargarConfig();
-            cargarProductos();
-            cargarUsuarios();
-            cargarCierres();
-            cargarAniosBalance();
-            errorDiv.innerText = '';
-            document.getElementById('loginUser').value = '';
-            document.getElementById('loginPass').value = '';
-            document.getElementById('pantallaCarga').style.display = 'none';
-        }, 1200);
-    } else {
-        errorDiv.innerText = 'Usuario o contraseña incorrectos';
-    }
-    document.getElementById('totalVentasHistorico').style.display = 'block';
-}
             if (usuarios.find(x=>x.usuario===usuario)) {
                 alert('Usuario ya existe');
                 return;
@@ -903,6 +863,7 @@
                 }, 1200); // 1.2 segundos de carga
             } else {
                 document.getElementById('loginError').innerText = 'Usuario o contraseña incorrectos';
+                usuarioActual = null;
             }
             document.getElementById('totalVentasHistorico').style.display = 'block';
         }
